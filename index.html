@@ -10,6 +10,18 @@
         body {
             color: #333344;
             background-color: #fafafa;
+
+            -webkit-transition:
+                color 1s,
+                background-color 2s;
+            transition:
+                color 1s,
+                background-color 2s;
+        }
+
+        body:hover {
+            background-color: #222222;
+            color: #fafafa;
         }
 
         body, p, span {
@@ -65,13 +77,13 @@
 
             -webkit-transition:
                 color .4s,
-                background-color .4s,
+                background-color 2s,
                 border-radius 10s,
                 width .4s,
                 -webkit-transform .4s;
             transition:
                 color .4s,
-                background-color .4s,
+                background-color 2s,
                 border-radius 10s,
                 width .4s,
                 transform .4s;
@@ -81,9 +93,8 @@
         }
 
         .icon:hover {
-            background-color: #f0f0e7;
-            border-radius: 1rem;
-            color: #334466;
+            border-radius: 0.7em;
+            color: #eaeaea;
             width: 20rem;
         }
 
@@ -92,23 +103,26 @@
             position: absolute;
             left: 100%;
             opacity: 0;
-            color: #333344;
+            color: #222222;
         }
 
         .icon span, .icon i {
             -webkit-transition:
                 left .2s,
                 opacity .2s,
+                color 1s,
                 text-shadow 1.5s;
             transition:
                 left .2s,
                 opacity .2s,
+                color 1s,
                 text-shadow 1.5s;
         }
 
         .icon:hover span {
             left: 1.8rem;
             opacity: 1;
+            color: #eaeaea;
         }
 
         .icon i {
