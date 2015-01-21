@@ -363,11 +363,6 @@
             var navContact = $('.nav .contact');
             var navAbout = $('.nav .about');
 
-            var inputValue = '', inputValueAfter = '';
-            var input = $('.input .value');
-            var inputAfter = $('.input .value-after');
-            var cursor = $('.input .cursor');
-
             var isSplashFull = false;
             function splashFull() {
                 if (isSplashFull) return;
@@ -383,12 +378,6 @@
                 setTimeout(iconBeat, 1000);
             }
             setTimeout(iconBeat, 1000);
-
-            function cursorBeat() {
-                cursor.toggleClass('beat');
-                setTimeout(cursorBeat, 700);
-            }
-            setTimeout(cursorBeat, 700);
 
             splash.hover(function hoverOn() {
                 splashContainer.addClass('on');
@@ -406,6 +395,19 @@
             $(window).scroll(splashFull);
 
 
+            // === term input
+
+            var inputValue = '', inputValueAfter = '';
+            var input = $('.input .value');
+            var inputAfter = $('.input .value-after');
+            var cursor = $('.input .cursor');
+
+            function cursorBeat() {
+                cursor.toggleClass('beat');
+                setTimeout(cursorBeat, 700);
+            }
+            setTimeout(cursorBeat, 700);
+
             function showInput() {
                 input.text(inputValue);
                 inputAfter.text(inputValueAfter);
@@ -418,27 +420,50 @@
                     splashContainer.removeClass('up');
                 }
             }
+            function inputChar(c) {
+                inputValue += c;
+                showInput();
+            }
+            function moveRight() {
+                inputValue += inputValueAfter.substring(0, 1);
+                inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
+                showInput();
+            }
+            function moveLeft() {
+                inputValueAfter = inputValue.substring(inputValue.length - 1, inputValue.length) + inputValueAfter;
+                inputValue = inputValue.substring(0, inputValue.length - 1);
+                showInput();
+            }
+            function moveEnd() {
+                inputValue = inputValue + inputValueAfter;
+                inputValueAfter = '';
+                showInput();
+            }
+            function removeBefore() {
+                inputValue = inputValue.substring(0, inputValue.length - 1);
+                showInput();
+            }
+            function removeAfter() {
+                inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
+                showInput();
+            }
             $(window).keydown(function keydown(e) {
                 switch (e.which) {
                     case 39: // right key
-                        inputValue += inputValueAfter.substring(0, 1);
-                        inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
-                        showInput();
+                        moveRight();
                         return;
 
                     case 37: // left key
-                        inputValueAfter = inputValue.substring(inputValue.length - 1, inputValue.length) + inputValueAfter;
+                        moveLeft();
+                        return;
 
-                        // fall through
                     case 8: // backspace
                         e.preventDefault();
-                        inputValue = inputValue.substring(0, inputValue.length - 1);
-                        showInput();
+                        removeBefore();
                         return;
 
                     case 46: // delete
-                        inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
-                        showInput();
+                        removeAfter();
                         return;
 
                     default:
@@ -447,15 +472,36 @@
             });
             $(window).keypress(function keypress(e) {
                 var c = String.fromCharCode(e.which);
-                inputValue += c;
-                showInput();
+                inputChar(c);
             });
 
             function setInputF(text) {
+                function pace() {
+                    var delay = 50;
+                    var jitter = 35;
+                    return delay + Math.floor(Math.random()*2*jitter) - jitter;
+                }
+
                 return function setInput() {
-                    inputValue = text;
-                    inputValueAfter = '';
-                    showInput();
+                    var remainingText = text.split('').reverse();
+                    function printOne() {
+                        if (remainingText.length > 0) {
+                            inputChar(remainingText.pop());
+                            setTimeout(printOne, pace());
+                        }
+                    }
+
+                    function clearOne() {
+                        if (inputValue != '') {
+                            removeBefore();
+                            setTimeout(clearOne, pace());
+                        } else {
+                            printOne();
+                        }
+                    }
+
+                    moveEnd();
+                    setTimeout(clearOne, pace());
                 }
             }
 
@@ -463,7 +509,7 @@
             navContact.click(setInputF('contact'));
 
             // splashFull();
-        })
+        });
 
     </script>
 </head>
