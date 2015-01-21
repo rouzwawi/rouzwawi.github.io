@@ -111,7 +111,12 @@
             margin: auto auto;
         }
 
-        .splash .button {
+        .splash .term {
+            text-align: left;
+        }
+
+        .splash .term-icon-container {
+            float: left;
             width: 100%;
 
             -webkit-transition: width .4s;
@@ -123,14 +128,18 @@
                     transition-timing-function: cubic-bezier(0.230, 1.000, 0.320, 1.000);
         }
 
+        .splash .term .button {
+            width: 40px;
+            margin: 0 auto;
+        }
+
         .splash .icon {
             background-color: transparent;
             border: none;
             display: inline-block;
 
             text-align: center;
-            width: 40px;
-            height: 6rem;
+            height: 7.3rem;
 
             cursor: pointer;
 
@@ -283,12 +292,18 @@
             height: 170px;
         }
 
-        .splash-container.up .button {
-            width: 20%;
+
+        /*.splash-container.up*/
+
+        .splash-container.up .term-icon-container {
+            width: 240px;
         }
 
         .splash-container.up .input {
             display: inline-block;
+            position: relative;
+
+            left: -80px;
         }
 
         .splash-container.up .icon, .splash-container .splash.on .icon {
@@ -307,13 +322,12 @@
             cursor: default;
         }
 
+
+        /*.splash-container.on*/
+
         .splash-container.on, .splash-container.up {
             background-color: #222222;
             color: #fafafa;
-        }
-
-        .splash-container.up {
-            /*height: 70px;*/
         }
 
         .splash-container.up .splash {
@@ -323,7 +337,6 @@
         .splash-container.up h2 {
             margin-top: 0;
             font-size: 2rem;
-            /*width: 25%;*/
         }
 
         .splash-container.up .nav {
@@ -448,6 +461,20 @@
         <div class="title">
             <h2 class="noselect">rouz.io</h2>
         </div>
+
+        <div class="term">
+            <div class="term-icon-container">
+                <div class="button">
+                    <button class="icon nofocus" type="button">
+                        <i class="fa fa-angle-right fa-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="input">
+                <span class="value"></span><span class="cursor">_</span><span class="value-after"></span>
+            </div>
+        </div>
+
         <ul class="nav">
             <li class="contact">
                 <div class="drop"><div class="text">contact</div></div>
@@ -456,15 +483,6 @@
                 <div class="drop"><div class="text">about me</div></div>
             </li>
         </ul>
-
-        <div class="button">
-            <button class="icon nofocus" type="button">
-                <i class="fa fa-angle-right fa-lg"></i>
-            </button>
-            <div class="input">
-                <span class="value"></span><span class="cursor">_</span><span class="value-after"></span>
-            </div>
-        </div>
     </div>
 </div>
 
