@@ -359,6 +359,7 @@
             var splash = $('.splash');
             var splashIcon = $('.splash .icon');
             var splashText = $('.splash h2');
+            var splashHeight = 180;
 
             var navContact = $('.nav .contact');
             var navAbout = $('.nav .about');
@@ -402,23 +403,38 @@
             var inputAfter = $('.input .value-after');
             var cursor = $('.input .cursor');
 
+            var inputChangeFunc = function(){};
+            var lastSeenInput = '';
+
+            function addInputChangeHandler(f) {
+                var prev = inputChangeFunc;
+                inputChangeFunc = function(text) {
+                    prev(text);
+                    f(text);
+                };
+            }
+            function inputChanged(text) {
+                if (lastSeenInput != text) {
+                    lastSeenInput = text;
+                    inputChangeFunc(text);
+                }
+            };
+
             function cursorBeat() {
                 cursor.toggleClass('beat');
                 setTimeout(cursorBeat, 700);
             }
             setTimeout(cursorBeat, 700);
 
+
             function showInput() {
                 input.text(inputValue);
                 inputAfter.text(inputValueAfter);
-                var fullInput = inputValue + inputValueAfter;
-
-                console.log(fullInput);
-                if (fullInput == 'about') {
-                    splashContainer.addClass('up');
-                } else {
-                    splashContainer.removeClass('up');
-                }
+                console.log(fullInput());
+                inputChanged(fullInput());
+            }
+            function fullInput() {
+                return inputValue + inputValueAfter;
             }
             function inputChar(c) {
                 inputValue += c;
@@ -475,7 +491,7 @@
                 inputChar(c);
             });
 
-            function setInputF(text) {
+            function setInputF(text, done) {
                 function pace() {
                     var delay = 50;
                     var jitter = 35;
@@ -484,10 +500,13 @@
 
                 return function setInput() {
                     var remainingText = text.split('').reverse();
+
                     function printOne() {
                         if (remainingText.length > 0) {
                             inputChar(remainingText.pop());
                             setTimeout(printOne, pace());
+                        } else if (done != undefined) {
+                            done(text);
                         }
                     }
 
@@ -504,6 +523,25 @@
                     setTimeout(clearOne, pace());
                 }
             }
+
+            function scrollToPage(page) {
+                page = page.toLowerCase();
+                var pageContainer = $('#' + page + '-page');
+                $('html, body').animate({
+                    scrollTop: pageContainer.offset().top - splashHeight
+                }, 500);
+            }
+
+            var pages = ['contact', 'about'];
+            addInputChangeHandler(function change(text) {
+                var page = text.toLowerCase();
+                if (pages.indexOf(page) > -1) {
+                    splashContainer.addClass('up');
+                    scrollToPage(page);
+                } else {
+                    // splashContainer.removeClass('up');
+                }
+            });
 
             navAbout.click(setInputF('about'));
             navContact.click(setInputF('contact'));
@@ -548,9 +586,17 @@
 </div>
 
 <div class="main-container">
-    <p>
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras magna mi, finibus non sagittis sit amet, porttitor eget odio. Mauris quis neque quis augue iaculis vehicula. Sed posuere in nisl vitae malesuada. Integer ut laoreet dolor. Vivamus purus sem, hendrerit in tortor sit amet, porttitor sagittis felis. Phasellus at felis enim. Curabitur molestie tempus metus vitae fermentum. Nam augue arcu, interdum ac mi vitae, ullamcorper luctus metus. Morbi et ligula volutpat, egestas leo eu, rhoncus nunc.
-    </p>
+    <div id="contact-page">
+        <p style="width: 100px;">
+            <strong>Contact:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras magna mi, finibus non sagittis sit amet, porttitor eget odio. Mauris quis neque quis augue iaculis vehicula. Sed posuere in nisl vitae malesuada. Integer ut laoreet dolor. Vivamus purus sem, hendrerit in tortor sit amet, porttitor sagittis felis. Phasellus at felis enim. Curabitur molestie tempus metus vitae fermentum. Nam augue arcu, interdum ac mi vitae, ullamcorper luctus metus. Morbi et ligula volutpat, egestas leo eu, rhoncus nunc.
+        </p>
+    </div>
+
+    <div id="about-page">
+        <p style="width: 100px;">
+            <strong>About:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras magna mi, finibus non sagittis sit amet, porttitor eget odio. Mauris quis neque quis augue iaculis vehicula. Sed posuere in nisl vitae malesuada. Integer ut laoreet dolor. Vivamus purus sem, hendrerit in tortor sit amet, porttitor sagittis felis. Phasellus at felis enim. Curabitur molestie tempus metus vitae fermentum. Nam augue arcu, interdum ac mi vitae, ullamcorper luctus metus. Morbi et ligula volutpat, egestas leo eu, rhoncus nunc.
+        </p>
+    </div>
 </div>
 
 </body>
