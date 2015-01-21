@@ -46,7 +46,7 @@
 
         .main-container {
             width: 100%;
-            padding-top: 80px;
+            padding-top: 180px;
             bottom: -1px; /* so that there's always room to scroll */
         }
 
@@ -55,7 +55,6 @@
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
             height: 100%;
 
             background-color: #fafafa;
@@ -75,6 +74,10 @@
                -moz-transition-timing-function: cubic-bezier(0.230, 1.000, 0.320, 1.000);
                  -o-transition-timing-function: cubic-bezier(0.230, 1.000, 0.320, 1.000);
                     transition-timing-function: cubic-bezier(0.230, 1.000, 0.320, 1.000);
+        }
+
+        .splash-container.up {
+            height: 180px;
         }
 
         .splash {
@@ -294,53 +297,50 @@
         }
 
 
-        /*.splash-container.up*/
+        /*.splash-container.full*/
 
-        .splash-container.up .term-icon-container {
+        .splash-container.full .term-icon-container {
             width: 240px;
         }
 
-        .splash-container.up .input {
+        .splash-container.full .input {
             display: inline-block;
             position: relative;
 
             left: -80px;
         }
 
-        .splash-container.up .icon, .splash-container .splash.on .icon {
+        .splash-container.full .icon, .splash-container .splash.on .icon {
             color: #eaeaea;
         }
 
-        .splash-container.up .icon {
+        .splash-container.full .icon {
             width: 40px;
         }
 
-        .splash-container.up .icon i, .splash-container .splash.on .icon i {
+        .splash-container.full .icon i, .splash-container .splash.on .icon i {
             text-shadow: 3px 1px 0 #fdfd96;
         }
 
-        .splash-container.up .icon {
+        .splash-container.full .icon {
             cursor: default;
         }
 
-
-        /*.splash-container.on*/
-
-        .splash-container.on, .splash-container.up {
+        .splash-container.full, .splash-container.on {
             background-color: #222222;
             color: #fafafa;
         }
 
-        .splash-container.up .splash {
+        .splash-container.full .splash {
             margin: 15px 0 0;
         }
 
-        .splash-container.up h2 {
+        .splash-container.full h2 {
             margin-top: 0;
             font-size: 2rem;
         }
 
-        .splash-container.up .nav {
+        .splash-container.full .nav {
             right: 1.6rem;
         }
     </style>
@@ -361,17 +361,17 @@
             var inputAfter = $('.input .value-after');
             var cursor = $('.input .cursor');
 
-            var isUp = false;
-            function splashUp() {
-                if (isUp) return;
-                isUp = true;
+            var isSplashFull = false;
+            function splashFull() {
+                if (isSplashFull) return;
+                isSplashFull = true;
 
-                splashContainer.addClass('up');
+                splashContainer.addClass('full');
                 splashIcon.find('i');
             }
 
             function iconBeat() {
-                if (isUp) return;
+                if (isSplashFull) return;
                 splashIcon.toggleClass('beat');
                 setTimeout(iconBeat, 1000);
             }
@@ -387,24 +387,29 @@
                 splashContainer.addClass('on');
             }, function hoverOff() {
                 splashContainer.removeClass('on');
-                // splashContainer.removeClass('up');
             });
 
             splashIcon.hover(function hoverOn() {
                 splash.addClass('on');
             }, function hoverOff() {
                 splash.removeClass('on');
-                // splashContainer.removeClass('up');
             });
 
-            splashIcon.click(splashUp);
-            $(window).scroll(splashUp);
+            splashIcon.click(splashFull);
+            $(window).scroll(splashFull);
 
 
             function showInput() {
                 input.text(inputValue);
                 inputAfter.text(inputValueAfter);
-                console.log(inputValue + inputValueAfter);
+                var fullInput = inputValue + inputValueAfter;
+
+                console.log(fullInput);
+                if (fullInput == 'about') {
+                    splashContainer.addClass('up');
+                } else {
+                    splashContainer.removeClass('up');
+                }
             }
             $(window).keydown(function keydown(e) {
                 switch (e.which) {
@@ -450,7 +455,7 @@
             navAbout.click(setInputF('about'));
             navContact.click(setInputF('contact'));
 
-            // splashUp();
+            // splashFull();
         })
 
     </script>
