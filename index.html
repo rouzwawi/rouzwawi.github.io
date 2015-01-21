@@ -22,6 +22,7 @@
         h1, h2, h3 {
             font-family: 'Raleway', sans-serif;
             font-weight: 100;
+            margin-bottom: 0.3em;
         }
 
         h1 { font-size: 5rem; }
@@ -111,7 +112,6 @@
         }
 
         .splash .title {
-            width: 800px;
             margin: auto auto;
         }
 
@@ -119,8 +119,7 @@
             text-align: left;
         }
 
-        .splash .term-icon-container {
-            float: left;
+        .splash .term-icon-container, .splash .title-container {
             width: 100%;
 
             -webkit-transition: width .4s;
@@ -301,14 +300,21 @@
         }
 
 
-        /*.splash-container.full*/
+        /* ===.splash-container.full === */
+
+        .splash-container.full .title-container {
+            width: 305px;
+        }
 
         .splash-container.full .term-icon-container {
+            float: left;
+            clear: left;
             width: 240px;
         }
 
         .splash-container.full .input {
             display: inline-block;
+            float: left;
         }
 
         .splash-container.full .icon, .splash-container .splash.on .icon {
@@ -465,11 +471,13 @@
 
 <div class="splash-container">
     <div class="splash">
-        <div class="title">
-            <h2 class="noselect">rouz.io</h2>
+        <div class="title-container">
+            <div class="title">
+                <h2 class="noselect">rouz.io</h2>
+            </div>
         </div>
 
-        <div class="term">
+        <div class="term noselect">
             <div class="term-icon-container">
                 <div class="button">
                     <button class="icon nofocus" type="button">
