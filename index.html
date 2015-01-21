@@ -12,6 +12,8 @@
         body {
             color: #333344;
             background-color: #fafafa;
+            margin: 0;
+            padding: 0;
         }
 
         body, p {
@@ -45,12 +47,6 @@
             cursor: default;
         }
 
-        .main-container {
-            width: 100%;
-            padding-top: 180px;
-            bottom: -1px; /* so that there's always room to scroll */
-        }
-
         .splash-container {
             position: fixed;
             top: 0;
@@ -76,10 +72,6 @@
                -moz-transition-timing-function: cubic-bezier(0.230, 1.000, 0.320, 1.000);
                  -o-transition-timing-function: cubic-bezier(0.230, 1.000, 0.320, 1.000);
                     transition-timing-function: cubic-bezier(0.230, 1.000, 0.320, 1.000);
-        }
-
-        .splash-container.up {
-            height: 180px;
         }
 
         .splash {
@@ -302,6 +294,10 @@
 
         /* ===.splash-container.full === */
 
+        .splash-container.up {
+            height: 180px;
+        }
+
         .splash-container.full .title-container {
             width: 305px;
         }
@@ -350,11 +346,31 @@
         .splash-container.full .nav {
             right: 1.6rem;
         }
+
+
+        article {
+            margin: 20px 40px 0 152px;
+        }
+
+        #main-container {
+            width: 100%;
+            padding-top: 180px;
+            bottom: -1px; /* so that there's always room to scroll */
+        }
+
+        #footer {
+            background-color: #222222;
+            color: #fafafa;
+            height: 100px;
+            padding: 10px 40px;
+        }
     </style>
 
     <script type="text/javascript">
 
         $(function init() {
+            var articleMargin = 20;
+
             var splashContainer = $('.splash-container');
             var splash = $('.splash');
             var splashIcon = $('.splash .icon');
@@ -528,8 +544,8 @@
                 page = page.toLowerCase();
                 var pageContainer = $('#' + page + '-page');
                 $('html, body').animate({
-                    scrollTop: pageContainer.offset().top - splashHeight
-                }, 500);
+                    scrollTop: pageContainer.offset().top - splashHeight - articleMargin
+                }, 300);
             }
 
             var pages = ['contact', 'about'];
@@ -575,27 +591,31 @@
         </div>
 
         <ul class="nav">
-            <li class="contact">
-                <div class="drop"><div class="text">contact</div></div>
-            </li>
             <li class="about">
                 <div class="drop"><div class="text">about me</div></div>
+            </li>
+            <li class="contact">
+                <div class="drop"><div class="text">contact</div></div>
             </li>
         </ul>
     </div>
 </div>
 
-<div class="main-container">
-    <div id="contact-page">
+<div id="main-container">
+    <article id="about-page">
         <p style="width: 100px;">
-            <strong>Contact:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras magna mi, finibus non sagittis sit amet, porttitor eget odio. Mauris quis neque quis augue iaculis vehicula. Sed posuere in nisl vitae malesuada. Integer ut laoreet dolor. Vivamus purus sem, hendrerit in tortor sit amet, porttitor sagittis felis. Phasellus at felis enim. Curabitur molestie tempus metus vitae fermentum. Nam augue arcu, interdum ac mi vitae, ullamcorper luctus metus. Morbi et ligula volutpat, egestas leo eu, rhoncus nunc.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras magna mi, finibus non sagittis sit amet, porttitor eget odio. Mauris quis neque quis augue iaculis vehicula. Sed posuere in nisl vitae malesuada. Integer ut laoreet dolor. Vivamus purus sem, hendrerit in tortor sit amet, porttitor sagittis felis. Phasellus at felis enim. Curabitur molestie tempus metus vitae fermentum. Nam augue arcu, interdum ac mi vitae, ullamcorper luctus metus. Morbi et ligula volutpat, egestas leo eu, rhoncus nunc.
         </p>
-    </div>
+    </article>
 
-    <div id="about-page">
+    <article id="contact-page">
         <p style="width: 100px;">
-            <strong>About:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras magna mi, finibus non sagittis sit amet, porttitor eget odio. Mauris quis neque quis augue iaculis vehicula. Sed posuere in nisl vitae malesuada. Integer ut laoreet dolor. Vivamus purus sem, hendrerit in tortor sit amet, porttitor sagittis felis. Phasellus at felis enim. Curabitur molestie tempus metus vitae fermentum. Nam augue arcu, interdum ac mi vitae, ullamcorper luctus metus. Morbi et ligula volutpat, egestas leo eu, rhoncus nunc.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras magna mi, finibus non sagittis sit amet, porttitor eget odio. Mauris quis neque quis augue iaculis vehicula. Sed posuere in nisl vitae malesuada. Integer ut laoreet dolor. Vivamus purus sem, hendrerit in tortor sit amet, porttitor sagittis felis. Phasellus at felis enim. Curabitur molestie tempus metus vitae fermentum. Nam augue arcu, interdum ac mi vitae, ullamcorper luctus metus. Morbi et ligula volutpat, egestas leo eu, rhoncus nunc.
         </p>
+    </article>
+
+    <div id="footer">
+        <p>Curabitur molestie tempus metus</p>
     </div>
 </div>
 
