@@ -370,13 +370,6 @@
 
     <script type="text/javascript">
 
-        $(function init() {
-
-            // === term input
-
-
-        });
-
     angular.module('rouzio', ['ngRoute'], function() {})
         .constant('ARTICLE_MARGIN', 20)
         .constant('SPLASH_HEIGHT', 180)
@@ -385,98 +378,121 @@
         });
 
     angular.module('rouzio')
-        .controller('TermCtrl', function TermCtrl(splashContainer, SPLASH_HEIGHT, ARTICLE_MARGIN) {
-            var inputValue = '', inputValueAfter = '';
-            var input = $('.input .value');
-            var inputAfter = $('.input .value-after');
-            var cursor = $('.input .cursor');
+        .service('TermService', function TermService() {
+            var inputValue = '',
+                inputValueAfter = '',
+                lastSeenInput = '';
+            var inputChangeFunc = function rootChangeHandler(){};
 
-            var inputChangeFunc = function(){};
-            var lastSeenInput = '';
-
-            function addInputChangeHandler(f) {
-                var prev = inputChangeFunc;
-                inputChangeFunc = function(text) {
-                    prev(text);
-                    f(text);
-                };
-            }
-            function inputChanged(text) {
-                if (lastSeenInput != text) {
-                    lastSeenInput = text;
-                    inputChangeFunc(text);
-                }
-            };
-
-            function cursorBeat() {
-                cursor.toggleClass('beat');
-                setTimeout(cursorBeat, 700);
-            }
-            setTimeout(cursorBeat, 700);
-
-
-            function showInput() {
-                input.text(inputValue);
-                inputAfter.text(inputValueAfter);
-                console.log(fullInput());
-                inputChanged(fullInput());
-            }
             function fullInput() {
                 return inputValue + inputValueAfter;
             }
-            function inputChar(c) {
-                inputValue += c;
-                showInput();
-            }
-            function moveRight() {
-                inputValue += inputValueAfter.substring(0, 1);
-                inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
-                showInput();
-            }
-            function moveLeft() {
-                inputValueAfter = inputValue.substring(inputValue.length - 1, inputValue.length) + inputValueAfter;
-                inputValue = inputValue.substring(0, inputValue.length - 1);
-                showInput();
-            }
-            function moveEnd() {
-                inputValue = inputValue + inputValueAfter;
-                inputValueAfter = '';
-                showInput();
-            }
-            function removeBefore() {
-                inputValue = inputValue.substring(0, inputValue.length - 1);
-                showInput();
-            }
-            function removeAfter() {
-                inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
-                showInput();
-            }
-            $(window).keydown(function keydown(e) {
-                switch (e.which) {
-                    case 39: // right key
-                        moveRight();
-                        return;
 
-                    case 37: // left key
-                        moveLeft();
-                        return;
+            function showInput() {
+                inputChanged(fullInput());
+            }
 
-                    case 8: // backspace
-                        e.preventDefault();
-                        removeBefore();
-                        return;
-
-                    case 46: // delete
-                        removeAfter();
-                        return;
-
-                    default:
-                        console.log('unhandled', e.which);
+            function inputChanged(text) {
+                if (lastSeenInput != text) {
+                    console.log(text);
+                    lastSeenInput = text;
+                    inputChangeFunc(text);
                 }
+            }
+
+            return {
+                fullInput: fullInput,
+                inputValue: function() { return inputValue; },
+                inputValueAfter: function() { return inputValueAfter; },
+
+                addInputChangeHandler: function(f) {
+                    var prev = inputChangeFunc;
+                    inputChangeFunc = function(text) {
+                        prev(text);
+                        f(text);
+                    };
+                },
+
+                inputChar: function(c) {
+                    inputValue += c;
+                    showInput();
+                },
+
+                moveRight: function() {
+                    inputValue += inputValueAfter.substring(0, 1);
+                    inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
+                    showInput();
+                },
+
+                moveLeft: function() {
+                    inputValueAfter = inputValue.substring(inputValue.length - 1, inputValue.length) + inputValueAfter;
+                    inputValue = inputValue.substring(0, inputValue.length - 1);
+                    showInput();
+                },
+
+                moveEnd: function() {
+                    inputValue = inputValue + inputValueAfter;
+                    inputValueAfter = '';
+                    showInput();
+                },
+
+                removeBefore: function() {
+                    inputValue = inputValue.substring(0, inputValue.length - 1);
+                    showInput();
+                },
+
+                removeAfter: function() {
+                    inputValueAfter = inputValueAfter.substring(1, inputValueAfter.length);
+                    showInput();
+                }
+            }
+        })
+        .controller('TermCtrl', function TermCtrl($scope, $timeout, TermService, splashContainer, SPLASH_HEIGHT, ARTICLE_MARGIN) {
+
+            // bind TermService fields to scope
+            $scope.$watch(function() {
+                $scope.inputValue = TermService.inputValue();
+                $scope.inputValueAfter = TermService.inputValueAfter();
+            })
+
+            $scope.cursorOn = true;
+            function cursorBeat() {
+                $scope.cursorOn = !$scope.cursorOn;
+                $timeout(cursorBeat, 700);
+            }
+            $timeout(cursorBeat, 700);
+
+
+            $(window).keydown(function keydown(e) {
+                $scope.$apply(function() {
+                    switch (e.which) {
+                        case 39: // right key
+                            TermService.moveRight();
+                            return;
+
+                        case 37: // left key
+                            TermService.moveLeft();
+                            return;
+
+                        case 8: // backspace
+                            e.preventDefault();
+                            TermService.removeBefore();
+                            return;
+
+                        case 46: // delete
+                            TermService.removeAfter();
+                            return;
+
+                        default:
+                            console.log('unhandled', e.which);
+                    }
+                });
             });
             $(window).keypress(function keypress(e) {
-                var c = String.fromCharCode(e.which);
-                inputChar(c);
+                $scope.$apply(function() {
+                    var c = String.fromCharCode(e.which);
+                    TermService.inputChar(c);
+                });
             });
 
             function setInputF(text, done) {
@@ -491,24 +507,24 @@
 
                     function printOne() {
                         if (remainingText.length > 0) {
-                            inputChar(remainingText.pop());
-                            setTimeout(printOne, pace());
+                            TermService.inputChar(remainingText.pop());
+                            $timeout(printOne, pace());
                         } else if (done != undefined) {
                             done(text);
                         }
                     }
 
                     function clearOne() {
-                        if (inputValue != '') {
-                            removeBefore();
-                            setTimeout(clearOne, pace());
+                        if (TermService.inputValue() != '') {
+                            TermService.removeBefore();
+                            $timeout(clearOne, pace());
                         } else {
                             printOne();
                         }
                     }
 
-                    moveEnd();
-                    setTimeout(clearOne, pace());
+                    TermService.moveEnd();
+                    $timeout(clearOne, pace());
                 }
             }
 
@@ -521,7 +537,7 @@
             }
 
             var pages = ['contact', 'about'];
-            addInputChangeHandler(function change(text) {
+            TermService.addInputChangeHandler(function change(text) {
                 var page = text.toLowerCase();
                 if (pages.indexOf(page) > -1) {
                     splashContainer.addClass('up');
@@ -537,7 +553,6 @@
 
     angular.module('rouzio')
         .controller('SplashCtrl', function SplashCtrl($scope, splashContainer) {
-            $scope.foo = 'bar';
             var splash = $('.splash');
             var splashIcon = $('.splash .icon');
             var splashText = $('.splash h2');
@@ -582,7 +597,7 @@
     <div class="splash">
         <div class="title-container">
             <div class="title">
-                <h2 class="noselect">rouz.io - {{foo}}</h2>
+                <h2 class="noselect">rouz.io</h2>
             </div>
         </div>
 
@@ -595,7 +610,7 @@
                 </div>
             </div>
             <div class="input">
-                <span class="value"></span><span class="cursor">_</span><span class="value-after"></span>
+                <span class="value">{{inputValue}}</span><span class="cursor" ng-class="{beat: cursorOn}">_</span><span class="value-after">{{inputValueAfter}}</span>
             </div>
         </div>
 
