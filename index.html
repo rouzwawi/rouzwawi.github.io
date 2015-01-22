@@ -7,6 +7,8 @@
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
 
     <script src="bower_components/jquery/dist/jquery.min.js" type="text/javascript"></script>
+    <script src="bower_components/angular/angular.min.js" type="text/javascript"></script>
+    <script src="bower_components/angular-route/angular-route.min.js" type="text/javascript"></script>
 
     <style type="text/css">
         body {
@@ -369,51 +371,21 @@
     <script type="text/javascript">
 
         $(function init() {
-            var articleMargin = 20;
-
-            var splashContainer = $('.splash-container');
-            var splash = $('.splash');
-            var splashIcon = $('.splash .icon');
-            var splashText = $('.splash h2');
-            var splashHeight = 180;
-
-            var navContact = $('.nav .contact');
-            var navAbout = $('.nav .about');
-
-            var isSplashFull = false;
-            function splashFull() {
-                if (isSplashFull) return;
-                isSplashFull = true;
-
-                splashContainer.addClass('full');
-                splashIcon.find('i');
-            }
-
-            function iconBeat() {
-                if (isSplashFull) return;
-                splashIcon.toggleClass('beat');
-                setTimeout(iconBeat, 1000);
-            }
-            setTimeout(iconBeat, 1000);
-
-            splash.hover(function hoverOn() {
-                splashContainer.addClass('on');
-            }, function hoverOff() {
-                splashContainer.removeClass('on');
-            });
-
-            splashIcon.hover(function hoverOn() {
-                splash.addClass('on');
-            }, function hoverOff() {
-                splash.removeClass('on');
-            });
-
-            splashIcon.click(splashFull);
-            $(window).scroll(splashFull);
-
 
             // === term input
 
+
+        });
+
+    angular.module('rouzio', ['ngRoute'], function() {})
+        .constant('ARTICLE_MARGIN', 20)
+        .constant('SPLASH_HEIGHT', 180)
+        .factory('splashContainer', function splashContainer() {
+            return $('.splash-container');
+        });
+
+    angular.module('rouzio')
+        .controller('TermCtrl', function TermCtrl(splashContainer, SPLASH_HEIGHT, ARTICLE_MARGIN) {
             var inputValue = '', inputValueAfter = '';
             var input = $('.input .value');
             var inputAfter = $('.input .value-after');
@@ -544,7 +516,7 @@
                 page = page.toLowerCase();
                 var pageContainer = $('#' + page + '-page');
                 $('html, body').animate({
-                    scrollTop: pageContainer.offset().top - splashHeight - articleMargin
+                    scrollTop: pageContainer.offset().top - SPLASH_HEIGHT - ARTICLE_MARGIN
                 }, 300);
             }
 
@@ -559,25 +531,62 @@
                 }
             });
 
-            navAbout.click(setInputF('about'));
-            navContact.click(setInputF('contact'));
+            $('.nav .about').click(setInputF('about'));
+            $('.nav .contact').click(setInputF('contact'));
+        });
 
-            // splashFull();
+    angular.module('rouzio')
+        .controller('SplashCtrl', function SplashCtrl($scope, splashContainer) {
+            $scope.foo = 'bar';
+            var splash = $('.splash');
+            var splashIcon = $('.splash .icon');
+            var splashText = $('.splash h2');
+
+            var isSplashFull = false;
+            function splashFull() {
+                if (isSplashFull) return;
+                isSplashFull = true;
+
+                splashContainer.addClass('full');
+                splashIcon.find('i');
+            }
+
+            function iconBeat() {
+                if (isSplashFull) return;
+                splashIcon.toggleClass('beat');
+                setTimeout(iconBeat, 1000);
+            }
+            setTimeout(iconBeat, 1000);
+
+            splash.hover(function hoverOn() {
+                splashContainer.addClass('on');
+            }, function hoverOff() {
+                splashContainer.removeClass('on');
+            });
+
+            splashIcon.hover(function hoverOn() {
+                splash.addClass('on');
+            }, function hoverOff() {
+                splash.removeClass('on');
+            });
+
+            splashIcon.click(splashFull);
+            $(window).scroll(splashFull);
         });
 
     </script>
 </head>
-<body>
+<body ng-app="rouzio">
 
-<div class="splash-container">
+<div class="splash-container" ng-controller="SplashCtrl">
     <div class="splash">
         <div class="title-container">
             <div class="title">
-                <h2 class="noselect">rouz.io</h2>
+                <h2 class="noselect">rouz.io - {{foo}}</h2>
             </div>
         </div>
 
-        <div class="term noselect">
+        <div ng-controller="TermCtrl" class="term noselect">
             <div class="term-icon-container">
                 <div class="button">
                     <button class="icon nofocus" type="button">
