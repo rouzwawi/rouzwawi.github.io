@@ -489,6 +489,9 @@
                 });
             });
             $(window).keypress(function keypress(e) {
+                if (!splashContainer.hasClass('full')) {
+                    return;
+                }
                 $scope.$apply(function() {
                     var c = String.fromCharCode(e.which);
                     TermService.inputChar(c);
