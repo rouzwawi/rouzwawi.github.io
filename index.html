@@ -493,6 +493,7 @@
                     return;
                 }
                 $scope.$apply(function() {
+                    e.preventDefault();
                     var c = String.fromCharCode(e.which);
                     TermService.inputChar(c);
                 });
