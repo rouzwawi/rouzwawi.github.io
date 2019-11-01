@@ -71,10 +71,10 @@
 
   let n = 100;
   let alpha = 0.05;
-  let significants = [];
+  let ps = [];
   let prop = 0.0;
 
-  let show = 0;
+  let show = 6;
   const SAMPLES = 0;
   const MEANS = 1;
   const P_SCALE = 2;
@@ -101,6 +101,8 @@
   }
 
   function draw() {
+    mouseY = mouseY || windowHeight/2;
+    mouseX = mouseX || windowWidth/2 - 25;
     let red   = color(250,50,50);
     let green = color(20,200,20);
     let blue  = color(50,50,250);
@@ -147,11 +149,11 @@
 
     // let p = jStat.ttest(mean1, 0, sd, n, 2);
     let p = get_t_test(xs0, xs1)[1];
-    if (significants.length > 400) {
-      significants = significants.splice(1);
+    if (ps.length >= 400) {
+      ps = ps.splice(1);
     }
-    significants.push(p < alpha);
-    let propNow = significants.filter(function(x) { return x; }).length / significants.length;
+    ps.push(p);
+    let propNow = ps.filter(function(x) { return x < alpha; }).length / ps.length;
     prop += (propNow - prop)*0.01; // glide
 
     // p-scale
@@ -170,9 +172,14 @@
       line(-pScale/2+pScale*alpha, 150, -pScale/2+pScale*alpha, 200);
     }
     if (show > P_VALUE) {
-      stroke(50);
-      strokeWeight(7);
-      point(p*pScale-pScale/2, 175);
+      strokeWeight(1);
+      let maxI = min(ps.length, 100);
+      ps.slice(max(0, ps.length-100), ps.length).forEach(function(pv, i) {
+        stroke(0, map(i, 0, maxI, 0, 255));
+        // point(pv * pScale - pScale / 2, 175);
+        let px = pv * pScale - pScale / 2;
+        line(px, 170, px, 180);
+      });
     }
     if (show > P_PROP) {
       strokeWeight(1);
@@ -199,7 +206,7 @@
     }
     if (show > P_PROP) {
       textAlign(CENTER, BOTTOM);
-      text('% significant', -pScale / 2 + pScale * prop, -210);
+      text('% significant difference from H0', -pScale / 2 + pScale * prop, -210);
     }
   }
 </script>
