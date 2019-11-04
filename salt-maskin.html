@@ -25,6 +25,7 @@
 <script>
   const BUCKET_COUNT = 500;
   let W = 1200, H = 1100;
+  let dirty = true;
 
   let gen = 0;
   let n = 1;
@@ -33,7 +34,6 @@
   let salts = [];
   let bucketUse = [];
   let freeHistory = [];
-  // let bucketHistory = [];
 
   let durationDist = jStat.normal(50, 25);
   let populationDist = jStat.beta(.5, 20);
@@ -92,7 +92,7 @@
           .forEach(i => buckets[i] = 0);
 
       if (jStat.sum(buckets) === 0) {
-        discardedGen = gen + 100;
+        discardedGen = gen;
       }
     }
 
@@ -104,7 +104,7 @@
       allocate, release,
       snapshot, allocation, freeBuckets,
       bucketHistory: () => bucketHistory,
-      discarded: () => discardedGen && gen > discardedGen,
+      discarded: (offset=0) => discardedGen && gen > discardedGen + offset,
       salt
     };
   }
@@ -186,7 +186,11 @@
       salts[0].snapshot();
     }
 
-    salts = salts.filter(s => !s.discarded());
+    salts = salts.filter(s => !s.discarded(100));
+
+    if (didAllocate || ended.length > 0) {
+      dirty = true;
+    }
 
     gen++;
   }
@@ -235,9 +239,9 @@
 
   function colorForId(id) {
     if (id === 0) {
-      return color(0, 0, 93);
+      return color(0, 0, 90);
     }
-    return color(id*20 % 360, 80, 80);
+    return color(id*20 % 360, 80, 90);
   }
 
   function mouseMoved() {
@@ -253,7 +257,10 @@
     let green = color(20,200,20);
     let blue  = color(50,50,250);
 
-    background(0, 0, 99);
+    strokeWeight(0);
+    fill(0, 0, 99);
+    rect(0, 0, W-BUCKET_COUNT, H);
+    // background(0, 0, 99);
 
     // timeline
     translate(W/5, 50);
@@ -264,7 +271,7 @@
       y = a.drawSlot * 8;
 
       let x0 = a.startGen - gen;
-      let x1 = a.endGen - a.startGen;
+      let x1 = Math.min(a.endGen - a.startGen, W-BUCKET_COUNT-W/5);
       fill(a.color);
       rect(x0, y, x1, 4);
     });
@@ -303,10 +310,20 @@
     text('available salt', 10, H-chartH/2);
 
 
+    // skip drawing buckets if not dirty
+    if (!dirty) {
+      return;
+    }
+    dirty = false;
+
     // buckets
     const barH = 6;
     resetMatrix();
-    translate(W-BUCKET_COUNT, 50);
+    translate(W-BUCKET_COUNT, 0);
+    strokeWeight(0);
+    fill(0, 0, 99);
+    rect(0, 0, BUCKET_COUNT, H);
+    translate(0, 50);
 
     salts.forEach(salt => {
       strokeWeight(0);
@@ -317,6 +334,9 @@
           if (id !== lastId || i === BUCKET_COUNT - 1) {
             if (lastId > -1) {
               fill(colorForId(lastId));
+              if (lastId === 0 && salt.discarded()) {
+                fill(40, 10, 90);
+              }
               rect(startI, 0, i-startI, barH);
             }
             lastId = id;
