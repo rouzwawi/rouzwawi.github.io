@@ -271,7 +271,7 @@
       y = a.drawSlot * 8;
 
       let x0 = a.startGen - gen;
-      let x1 = Math.min(a.endGen - a.startGen, W-BUCKET_COUNT-W/5);
+      let x1 = Math.min(a.endGen - a.startGen, W-BUCKET_COUNT-W/5-x0);
       fill(a.color);
       rect(x0, y, x1, 4);
     });
