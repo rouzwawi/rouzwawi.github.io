@@ -239,7 +239,7 @@
 
   function colorForId(id) {
     if (id === 0) {
-      return color(0, 0, 90);
+      return color(0, 0, 93);
     }
     return color(id*20 % 360, 80, 90);
   }
@@ -282,12 +282,12 @@
     strokeWeight(.5);
     stroke(0);
     noFill();
+    let chartH = BUCKET_COUNT/10;
     beginShape();
     for (let i = 0; i < freeHistory.length; i++) {
-      vertex(3*(i-freeHistory.length+1), H-freeHistory[i]/10);
+      vertex(3*(i-freeHistory.length+1), H-chartH+freeHistory[i]/10);
     }
     endShape();
-    let chartH = BUCKET_COUNT/10;
     beginShape();
     for (let i = 0; i < BUCKET_COUNT; i++) {
       let x = map(i, 0, BUCKET_COUNT, -W/5, 0);
@@ -306,8 +306,8 @@
     textAlign(CENTER, CENTER);
     text('allocations timeline', 0, 25);
     textAlign(LEFT, CENTER);
-    text('buckets used', 10, H-3*chartH/2);
-    text('available salt', 10, H-chartH/2);
+    text('buckets used in latest salt', 10, H-3*chartH/2);
+    text('alloc compensation factor', 10, H-chartH/2);
 
 
     // skip drawing buckets if not dirty
@@ -327,6 +327,13 @@
 
     salts.forEach(salt => {
       strokeWeight(0);
+      if (salt.discarded()) {
+        fill(0, 100, 90);
+      } else {
+        fill(0);
+      }
+      rect(0, 0, BUCKET_COUNT, barH/2);
+      translate(0, barH/2);
       salt.bucketHistory().slice().reverse().forEach(buckets => {
         let lastId = -1;
         let startI = 0;
@@ -334,9 +341,6 @@
           if (id !== lastId || i === BUCKET_COUNT - 1) {
             if (lastId > -1) {
               fill(colorForId(lastId));
-              if (lastId === 0 && salt.discarded()) {
-                fill(40, 10, 90);
-              }
               rect(startI, 0, i-startI, barH);
             }
             lastId = id;
@@ -345,9 +349,6 @@
         });
         translate(0, barH);
       });
-      fill(0);
-      rect(0, 0, BUCKET_COUNT, barH/2);
-      translate(0, barH/2);
     });
 
     resetMatrix();
@@ -356,7 +357,7 @@
     textSize(14);
     strokeWeight(.5);
     textAlign(CENTER, CENTER);
-    text('salt bucket allocations (black bar = new salt)', 0, 25);
+    text('salt bucket allocations (black row = new salt)', 0, 25);
   }
 </script>
 </body>
