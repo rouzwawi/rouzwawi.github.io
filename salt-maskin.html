@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SaltMaskin</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 25px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>SaltMaskin</h1>
+<div id="sketch-holder">
+</div>
+<p id="keys">
+    commands<br/>
+</p>
+
+<script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.js"></script>
+
+<script>
+  let W = 1200, H = 540;
+
+  let gen = 0;
+  let n = 0;
+  let allocations = [];
+
+  let buckets = [];
+  let bucketUse = [];
+  let bucketHistory = [];
+
+  let durationDist = jStat.normal(21, 8);
+  let populationDist = jStat.beta(.5, 20);
+
+  function allocate() {
+    let free = freeBuckets(buckets);
+    if (free === 0) {
+      return false;
+    }
+
+    let population = Math.ceil(populationDist.sample() * buckets.length);
+    population = Math.min(population, free);
+
+    let id = n++;
+    let bucketsToAllocate = population;
+    let i = Math.floor(Math.random()*buckets.length);
+    while (bucketsToAllocate > 0) {
+      let b = buckets[i];
+      if (b < 0 || b >= gen) {
+        buckets[i] = id;
+        bucketUse[i]++;
+        bucketsToAllocate--;
+      }
+      i = (i+1) % buckets.length;
+    }
+
+    let allocation = {
+      id,
+      startGen: gen,
+      endGen: gen + Math.floor(durationDist.sample()),
+      population: population
+    };
+    allocations.push(allocation);
+
+    return true;
+  }
+
+  function deallocate() {
+    let released = allocations.filter(a => gen >= a.endGen);
+    allocations = allocations.filter(a => gen < a.endGen);
+    return released;
+  }
+
+  function freeBuckets(buckets) {
+    return buckets.filter(a => a < 0).length;
+  }
+
+  function tick() {
+    let didAllocate = false;
+    let released = deallocate();
+
+    releasedIds = {};
+    released.forEach(a => releasedIds[a.id] = true);
+    buckets.map((b,i) => (releasedIds[b] || false) ? i : -1)
+        .filter(i => i > -1)
+        .forEach(i => buckets[i] = -1);
+
+    if (Math.random() < 0.2) {
+      didAllocate = allocate();
+    }
+
+    if (didAllocate || released.length > 0) {
+      bucketHistory.push(buckets.slice());
+      if (bucketHistory.length > 90) {
+        bucketHistory = bucketHistory.splice(1);
+      }
+    }
+
+    gen++;
+  }
+
+  function setup() {
+    for (let i = 0; i < 500; i++) {
+      buckets.push(-1);
+      bucketUse.push(0);
+    }
+
+    W = windowWidth - 50;
+
+    let canvas = createCanvas(W, H);
+    canvas.parent('sketch-holder');
+
+    colorMode(HSB);
+
+    // setInterval(tick, 10);
+  }
+
+  function keyPressed() {
+    switch (keyCode) {
+      case UP_ARROW:
+        break;
+      case DOWN_ARROW:
+        break;
+      case RIGHT_ARROW:
+        break;
+      case LEFT_ARROW:
+        break;
+    }
+  }
+
+  let lineDrawSlots = [];
+  function findFreeSlot(untilGen) {
+    for (let i = 0; i < lineDrawSlots.length; i++) {
+      if (lineDrawSlots[i] <= gen) {
+        lineDrawSlots[i] = untilGen;
+        return i;
+      }
+    }
+    // not found
+    lineDrawSlots.push(untilGen);
+    return lineDrawSlots.length - 1;
+  }
+
+  function colorForId(id) {
+    return color(id*20 % 360, 80, 80);
+  }
+
+  function mouseMoved() {
+    durationDist = jStat.normal(mouseX/2, mouseY/20);
+  }
+
+  function draw() {
+    tick();
+
+    mouseY = mouseY || windowHeight/2;
+    mouseX = mouseX || windowWidth/2 - 25;
+    let red   = color(250,50,50);
+    let green = color(20,200,20);
+    let blue  = color(50,50,250);
+
+    background(250);
+
+    // timeline
+    translate(W/5, 0);
+    strokeWeight(0);
+    stroke(0);
+    allocations.forEach(a => {
+      a.drawSlot = a.drawSlot || findFreeSlot(a.endGen);
+      y = a.drawSlot * 8;
+
+      let x0 = a.startGen - gen;
+      let x1 = a.endGen - a.startGen;
+      fill(colorForId(a.id));
+      rect(x0, y, x1, 4);
+    });
+
+    // allocation chart
+    strokeWeight(.5);
+    stroke(0);
+    noFill();
+    let freeHistory = bucketHistory.map(buckets => freeBuckets(buckets));
+    beginShape();
+    for (let i = 0; i < freeHistory.length; i++) {
+      vertex(3*(i-bucketHistory.length), H-freeHistory[i]/10);
+    }
+    endShape();
+    beginShape();
+    let maxUse = jStat.max(bucketUse);
+    for (let i = 0; i < buckets.length; i++) {
+      let x = map(i, 0, buckets.length, -W/5, 0);
+      vertex(x, H-buckets.length/10-map(bucketUse[i], 0, maxUse, 0, buckets.length/10));
+    }
+    endShape();
+
+    // axis
+    line(0, 0, 0, H);
+    line(-W/5, H, 0, H);
+    line(-W/5, H-buckets.length/10, 0, H-buckets.length/10);
+    line(-W/5, H-2*buckets.length/10, 0, H-2*buckets.length/10);
+
+    // buckets
+    const barH = 6;
+    resetMatrix();
+    translate(W-buckets.length, 0);
+    stroke(0);
+    strokeWeight(.5);
+    line(0, 0, buckets.length, 0);
+    strokeWeight(0);
+    bucketHistory.slice().reverse().forEach(buckets => {
+      let lastId = -1;
+      let startI = 0;
+      buckets.forEach((id,i) => {
+        if (id !== lastId || i === buckets.length - 1) {
+          if (lastId > -1) {
+            fill(colorForId(lastId));
+            rect(startI, 0, i-startI, barH);
+          }
+          lastId = id;
+          startI = i;
+        }
+      });
+      translate(0, barH);
+    });
+    stroke(0);
+    strokeWeight(.5);
+    line(0, 0, buckets.length, 0);
+  }
+</script>
+</body>
+</html>
