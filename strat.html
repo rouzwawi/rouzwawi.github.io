@@ -22,6 +22,12 @@
     up: more strata, down: less strata<br/>
     mouse: drag target proportion bars
 </p>
+<div>
+  <button onclick="show++">more</button>
+  <button onclick="show--">less</button>
+  <button onclick="inc()">add</button>
+  <button onclick="dec()">remove</button>
+</div>
 
 <script src="js/jstat.js"></script>
 <script src="js/p5.js"></script>
@@ -59,7 +65,15 @@
     }
 
     let SHOW_MAX = 3;
-    let show = 0;
+    let show = 2;
+
+    function inc() {
+        init(N+1);
+    }
+
+    function dec() {
+        init(N-1);
+    }
 
     function keyPressed() {
         switch (keyCode) {
@@ -72,10 +86,10 @@
                 if (show < 0) show = 0;
                 break;
             case UP_ARROW:
-                init(N+1);
+                inc();
                 break;
             case DOWN_ARROW:
-                init(N-1);
+                dec();
                 break;
         }
     }
