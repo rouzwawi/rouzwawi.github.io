@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SaltMaskin</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      margin: 25px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Re-balance strata</h1>
+<div id="sketch-holder">
+</div>
+<p id="keys">
+    commands<br/>
+    right: show more, left: show less<br/>
+    up: more strata, down: less strata<br/>
+    mouse: drag target proportion bars
+</p>
+
+<script src="js/jstat.js"></script>
+<script src="js/p5.js"></script>
+
+<script>
+    let W = 1200, H = 600;
+    let BAR_D = 50;
+    let BAR_H = 350;
+
+    let N = 2;
+    let MARGIN = W / 2 - (N - 1) * BAR_D / 2;
+
+    let target = [...new Array(N)].map(_ => 1);
+    let realRate = [...new Array(N)].map(_ => 1);
+    let w = [...new Array(N)].map(_ => 1);
+    let xoff = 0.0;
+
+    function init(n) {
+        N = n;
+        MARGIN = W / 2 - (n - 1) * BAR_D / 2;
+
+        target = [...new Array(n)].map(_ => 1);
+        realRate = [...new Array(n)].map(_ => 1);
+        w = [...new Array(n)].map(_ => 1);
+    }
+
+    function setup() {
+        W = windowWidth - 50;
+        init(N);
+
+        let canvas = createCanvas(W, H);
+        canvas.parent('sketch-holder');
+
+        // setInterval(tick, 50);
+    }
+
+    let SHOW_MAX = 3;
+    let show = 0;
+
+    function keyPressed() {
+        switch (keyCode) {
+            case RIGHT_ARROW:
+                show++;
+                if (show > SHOW_MAX) show = SHOW_MAX;
+                break;
+            case LEFT_ARROW:
+                show--;
+                if (show < 0) show = 0;
+                break;
+            case UP_ARROW:
+                init(N+1);
+                break;
+            case DOWN_ARROW:
+                init(N-1);
+                break;
+        }
+    }
+
+
+    let clicked = -1;
+    let clickedY = 0;
+
+    function mousePressed() {
+        clicked = -1;
+        for (let i = 0; i < target.length; i++) {
+            console.log(mouseX);
+            if (Math.abs((MARGIN + 10 + i * BAR_D) - mouseX) < 20) {
+                clicked = i;
+                clickedY = mouseY;
+                console.log(clicked, clickedY);
+                break;
+            }
+        }
+    }
+
+    function mouseReleased() {
+        clicked = -1;
+    }
+
+    function mouseDragged() {
+        if (clicked > -1) {
+            target[clicked] = -(mouseY - (H - 100)) / BAR_H;
+        }
+    }
+
+    function draw() {
+        background(250);
+        fill(200);
+        smooth();
+        push();
+        translate(0, H - 100);
+        scale(1.0, -1.0);
+
+        line(20, 0, W - 40, 0);
+        // line(20, BAR_H, W-40, BAR_H);
+
+        push();
+        translate(MARGIN, 0);
+
+        {
+            translate(-10, 0);
+            push();
+            strokeWeight(2);
+            for (let i = 0; i < target.length; i++) {
+                line(i * BAR_D - 5, BAR_H * target[i], i * BAR_D + 25, BAR_H * target[i]);
+            }
+            pop();
+
+            for (let i = 0; i < target.length; i++) {
+                line(i * BAR_D, 0, i * BAR_D, BAR_H * realRate[i]);
+                line(i * BAR_D, BAR_H * realRate[i], i * BAR_D + 5, BAR_H * realRate[i]);
+            }
+
+            translate(10, 0);
+            if (show >= 2) {
+                let o = realRate.map((r, i) => r * w[i]);
+                for (let i = 0; i < target.length; i++) {
+                    line(i * BAR_D, 0, i * BAR_D, BAR_H * o[i]);
+                    push();
+                    // strokeWeight(2);
+                    line(i * BAR_D - 15, BAR_H * o[i], i * BAR_D + 15, BAR_H * o[i]);
+                    pop();
+                }
+            }
+
+            translate(10, 0);
+            if (show >= 1) {
+                for (let i = 0; i < target.length; i++) {
+                    line(i * BAR_D, 0, i * BAR_D, BAR_H * w[i]);
+                    line(i * BAR_D - 5, BAR_H * w[i], i * BAR_D, BAR_H * w[i]);
+                }
+            }
+            pop();
+        }
+
+        legend();
+
+        xoff += 0.007;
+        for (let i = 0; i < target.length; i++) {
+            realRate[i] = 0.3 + 0.7 * noise(xoff + 100 * i);
+        }
+
+        let o = realRate.map((r, i) => r * w[i]);
+        let r = target.map((t, i) => t / (o[i] / w[i]));
+        let max = Math.max(...r);
+        w = r.map(r => r / max);
+    }
+
+    function legend() {
+        if (show < 3) return;
+        let o = realRate.map((r, i) => r * w[i]);
+
+        push();
+        scale(1.0, -1.0);
+        fill(0,0,0);
+        textSize(14);
+        strokeWeight(.5);
+        textAlign(RIGHT, CENTER);
+        text('target proportions (top bar) -->', MARGIN - BAR_D, -BAR_H);
+        text('real proportions (left line) -->', MARGIN - BAR_D, 10-BAR_H*realRate[0]);
+        textAlign(LEFT, CENTER);
+        text('<-- re-balance weights (right line)', MARGIN + N*BAR_D, 10-BAR_H*w[N-1]);
+        text('<-- exposed proportions (middle line)', MARGIN + N*BAR_D, -BAR_H*o[N-1]);
+        pop();
+    }
+</script>
+</body>
+</html>
