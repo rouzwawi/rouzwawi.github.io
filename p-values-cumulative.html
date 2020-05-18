@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>P Value Viz</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 25px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>P Value Visualizer</h1>
+<div id="sketch-holder">
+</div>
+<p id="keys">
+    up: show more<br/>
+    down: show less<br/>
+    right: increase alpha<br/>
+    left: decrease alpha<br/>
+</p>
+
+<script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.js"></script>
+
+<script>
+  let W = 1200, H = 540;
+  window.onload = function () {
+  };
+
+  function setup() {
+    W = windowWidth - 50;
+
+    let canvas = createCanvas(W, H);
+    canvas.parent('sketch-holder');
+  }
+
+  function drawPdf(dist) {
+    noFill();
+    beginShape();
+    for (let x = -W/2; x < W/2; x += 1) {
+      let y = dist.pdf(x) * 5e4 - 200;
+      vertex(x, y);
+    }
+    endShape();
+  }
+
+  function drawRandomSamples(dist, n, offset) {
+    offset = offset || 0;
+    let samples = [];
+    for (let i = 0; i < n; i++) {
+      let x = dist.sample();
+      samples.push(x);
+      if (show > SAMPLES) {
+        line(x, -210 - offset, x, -220 - offset);
+      }
+    }
+    return samples;
+  }
+
+  function get_t_test(t_array1, t_array2){
+    let meanA = jStat.mean(t_array1);
+    let meanB = jStat.mean(t_array2);
+    let S2=(jStat.sum(jStat.pow(jStat.subtract(t_array1,meanA),2)) + jStat.sum(jStat.pow(jStat.subtract(t_array2,meanB),2)))/(t_array1.length+t_array2.length-2);
+    let t_score = (meanA - meanB)/Math.sqrt(S2/t_array1.length+S2/t_array2.length);
+    let t_pval = jStat.studentt.cdf(-Math.abs(t_score), t_array1.length+t_array2.length-2) * 2;
+    return [t_score, t_pval];
+  }
+
+  let n = 10;
+  let alpha = 0.05;
+  let ps = [];
+  let prop = 0.0;
+
+  let show = 6;
+  const SAMPLES = 0;
+  const MEANS = 1;
+  const P_SCALE = 2;
+  const P_ALPHA = 3;
+  const P_VALUE = 4;
+  const P_PROP = 5;
+
+  function keyPressed() {
+    switch (keyCode) {
+      case UP_ARROW:
+        show++;
+        break;
+      case DOWN_ARROW:
+        show--;
+        if (show < 0) show = 0;
+        break;
+      case RIGHT_ARROW:
+        alpha += 0.01;
+        break;
+      case LEFT_ARROW:
+        alpha -= 0.01;
+        break;
+    }
+  }
+
+  function distSequence(dist) {
+      let i = 0;
+      let samples = [];
+
+      return {
+          sample: () => {
+              if (i < samples.length) {
+                  return samples[i++];
+              } else {
+                  let x = dist.sample();
+                  samples.push(x);
+                  i++;
+                  return x;
+              }
+          },
+          reset: () => i = 0,
+          pdf: (x) => dist.pdf(x)
+      };
+  }
+
+  let lastmouseX;
+  let dist, dist2;
+  let mu1;
+
+
+  function draw() {
+    mouseY = mouseY || windowHeight/2;
+    mouseX = mouseX || windowWidth/2 - 25;
+    let red   = color(250,50,50);
+    let green = color(20,200,20);
+    let blue  = color(50,50,250);
+
+    background(250);
+    fill(200);
+    smooth();
+    translate(W/2, H/2);
+    scale(1.0, -1.0);
+
+    let pScale = W/2;
+    let sd = mouseY/6;
+    if (lastmouseX !== mouseX) {
+        mu1 = mouseX - W / 2;
+        dist = distSequence(jStat.normal(0.0, sd));
+        dist2 = distSequence(jStat.normal(mu1, sd));
+        lastmouseX = mouseX;
+        n = 10;
+    }
+    dist.reset();
+    dist2.reset();
+    n += 1;
+
+    strokeWeight(.5);
+    stroke(0);
+    stroke(blue);
+    drawPdf(dist);
+    stroke(green);
+    drawPdf(dist2);
+
+    stroke(blue);
+    let xs0 = drawRandomSamples(dist, n);
+    stroke(green);
+    let xs1 = drawRandomSamples(dist2, n, 12);
+
+    strokeWeight(2);
+    if (show > MEANS) {
+      let mean0 = jStat.mean(xs0);
+      let mean1 = jStat.mean(xs1);
+      let sd0 = jStat.stdev(xs0, true);
+      let sd1 = jStat.stdev(xs1, true);
+      let ci0 = jStat.normalci(mean0, alpha, sd0, n);
+      let ci1 = jStat.normalci(mean1, alpha, sd1, n);
+      stroke(220);
+      line(ci0[0], -175, ci0[1], -175);
+      line(ci1[0], -185, ci1[1], -185);
+      stroke(blue);
+      line(mean0, -170, mean0, -180);
+      stroke(green);
+      line(mean1, -180, mean1, -190);
+    }
+
+    // let p = jStat.ttest(mean1, 0, sd, n, 2);
+    let p = get_t_test(xs0, xs1)[1];
+    if (ps.length >= 400) {
+      ps = ps.splice(1);
+    }
+    ps.push(p);
+    let propNow = ps.filter(function(x) { return x < alpha; }).length / ps.length;
+    prop += (propNow - prop)*0.01; // glide
+
+    // p-scale
+    if (show > P_SCALE) {
+      stroke(120);
+      strokeWeight(.5);
+      line(-pScale / 2, 150, -pScale / 2, 200);
+      line(pScale / 2, 150, pScale / 2, 200);
+      stroke(220);
+      line( -pScale/2, 175, pScale/2, 175);
+    }
+
+    if (show > P_ALPHA) {
+      stroke(green);
+      strokeWeight(1);
+      line(-pScale/2+pScale*alpha, 150, -pScale/2+pScale*alpha, 200);
+    }
+    if (show > P_VALUE) {
+      strokeWeight(1);
+      let maxI = min(ps.length, 100);
+      ps.slice(max(0, ps.length-100), ps.length).forEach(function(pv, i) {
+        stroke(0, map(i, 0, maxI, 0, 255));
+        // point(pv * pScale - pScale / 2, 175);
+        let px = pv * pScale - pScale / 2;
+        line(px, 170, px, 180);
+      });
+    }
+    if (show > P_PROP) {
+      strokeWeight(1);
+      stroke(prop > alpha ? blue : red);
+      line(-pScale / 2 + pScale * prop, 160, -pScale / 2 + pScale * prop, 190);
+    }
+
+    scale(1.0, -1.0);
+    stroke(100);
+    fill(100);
+    textSize(14);
+    strokeWeight(.5);
+
+    if (show > P_SCALE) {
+      textAlign(RIGHT, CENTER);
+      text('p-value', -pScale / 2 - 25, -175);
+      textAlign(CENTER, TOP);
+      text('0.0', -pScale/2, -140);
+      text('1.0',  pScale/2, -140);
+    }
+    if (show > P_ALPHA) {
+      textAlign(CENTER, TOP);
+      text('α', -pScale / 2 + pScale * alpha, -150);
+    }
+    if (show > P_PROP) {
+      textAlign(CENTER, BOTTOM);
+      text('% significant difference from H0', -pScale / 2 + pScale * prop, -210);
+      textAlign(RIGHT, CENTER);
+      text('n = ' + n, -pScale / 2 - 125, -175);
+      text('µ1 = ' + mu1, -pScale / 2 - 125, -155);
+      text('stdev = ' + sd.toFixed(2), -pScale / 2 - 125, -135);
+    }
+  }
+</script>
+</body>
+</html>
