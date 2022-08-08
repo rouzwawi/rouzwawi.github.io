@@ -26,7 +26,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.js"></script>
 
 <script>
-  let W = 1200, H = 540;
+  const buckets = 200;
+  const max_ps = 5000;
+
+  let W = 1200, H = 750;
   window.onload = function () {
   };
 
@@ -41,20 +44,20 @@
     noFill();
     beginShape();
     for (let x = -W/2; x < W/2; x += 1) {
-      let y = dist.pdf(x) * 5e4 - 200;
+      let y = dist.pdf(x) * 5e4 - 280;
       vertex(x, y);
     }
     endShape();
   }
 
-  function drawRandomSamples(dist, n, offset) {
+  function drawRandomSamples(dist, n, offset, draw) {
     offset = offset || 0;
     let samples = [];
     for (let i = 0; i < n; i++) {
       let x = dist.sample();
       samples.push(x);
-      if (show > SAMPLES) {
-        line(x, -210 - offset, x, -220 - offset);
+      if (draw && show > SAMPLES) {
+        line(x, -290 - offset, x, -300 - offset);
       }
     }
     return samples;
@@ -81,6 +84,21 @@
   const P_ALPHA = 3;
   const P_VALUE = 4;
   const P_PROP = 5;
+
+  function get_p_dist() {
+    let p_dist = new Array(buckets).fill(0);
+    let max_count = 0;
+    ps.forEach(function(pv) {
+      let bucket = Math.min(Math.floor(pv * buckets), buckets - 1);
+      let new_count = p_dist[bucket] + 1;
+      p_dist[bucket] = new_count;
+      if (new_count > max_count) {
+          max_count = new_count;
+      }
+    });
+
+    return [p_dist, max(max_count, 10)];
+  }
 
   function keyPressed() {
     switch (keyCode) {
@@ -125,10 +143,30 @@
     stroke(green);
     drawPdf(dist2);
 
+    for (let i = 0; i < 50; i++) {
+      let xs0 = drawRandomSamples(dist, n, 0, false);
+      let xs1 = drawRandomSamples(dist2, n, 12, false);
+
+      let p = get_t_test(xs0, xs1)[1];
+      if (ps.length >= max_ps) {
+        ps = ps.splice(1);
+      }
+      ps.push(p);
+    }
+
     stroke(blue);
-    let xs0 = drawRandomSamples(dist, n);
+    let xs0 = drawRandomSamples(dist, n, 0, true);
     stroke(green);
-    let xs1 = drawRandomSamples(dist2, n, 12);
+    let xs1 = drawRandomSamples(dist2, n, 12, true);
+
+    // let p = jStat.ttest(mean1, 0, sd, n, 2);
+    let p = get_t_test(xs0, xs1)[1];
+    if (ps.length >= max_ps) {
+      ps = ps.splice(1);
+    }
+    ps.push(p);
+    let propNow = ps.filter(function(x) { return x < alpha; }).length / ps.length;
+    prop += (propNow - prop)*0.01; // glide
 
     strokeWeight(2);
     if (show > MEANS) {
@@ -139,52 +177,59 @@
       let ci0 = jStat.normalci(mean0, alpha, sd0, n);
       let ci1 = jStat.normalci(mean1, alpha, sd1, n);
       stroke(220);
-      line(ci0[0], -175, ci0[1], -175);
-      line(ci1[0], -185, ci1[1], -185);
+      line(ci0[0], -255, ci0[1], -255);
+      line(ci1[0], -265, ci1[1], -265);
       stroke(blue);
-      line(mean0, -170, mean0, -180);
+      line(mean0, -250, mean0, -260);
       stroke(green);
-      line(mean1, -180, mean1, -190);
+      line(mean1, -260, mean1, -270);
     }
-
-    // let p = jStat.ttest(mean1, 0, sd, n, 2);
-    let p = get_t_test(xs0, xs1)[1];
-    if (ps.length >= 400) {
-      ps = ps.splice(1);
-    }
-    ps.push(p);
-    let propNow = ps.filter(function(x) { return x < alpha; }).length / ps.length;
-    prop += (propNow - prop)*0.01; // glide
 
     // p-scale
+    let p_scale_base = 120;
     if (show > P_SCALE) {
       stroke(120);
       strokeWeight(.5);
-      line(-pScale / 2, 150, -pScale / 2, 200);
-      line(pScale / 2, 150, pScale / 2, 200);
+      line(-pScale / 2, p_scale_base-20, -pScale / 2, p_scale_base+20);
+      line(pScale / 2, p_scale_base-20, pScale / 2, p_scale_base+20);
       stroke(220);
-      line( -pScale/2, 175, pScale/2, 175);
+      line( -pScale/2, p_scale_base, pScale/2, p_scale_base);
     }
 
     if (show > P_ALPHA) {
       stroke(green);
       strokeWeight(1);
-      line(-pScale/2+pScale*alpha, 150, -pScale/2+pScale*alpha, 200);
+      line(-pScale/2+pScale*alpha, p_scale_base-20, -pScale/2+pScale*alpha, p_scale_base+20);
     }
     if (show > P_VALUE) {
       strokeWeight(1);
-      let maxI = min(ps.length, 100);
-      ps.slice(max(0, ps.length-100), ps.length).forEach(function(pv, i) {
+      let maxI = min(ps.length, 250);
+      ps.slice(max(0, ps.length-250), ps.length).forEach(function(pv, i) {
         stroke(0, map(i, 0, maxI, 0, 255));
         // point(pv * pScale - pScale / 2, 175);
         let px = pv * pScale - pScale / 2;
-        line(px, 170, px, 180);
+        line(px, p_scale_base-5, px, p_scale_base+5);
       });
+
+      let hist_base = 220;
+      let hist_height = 90;
+      let [p_dist, max_count] = get_p_dist();
+      strokeWeight(.5);
+      line( -pScale/2, hist_base, pScale/2, hist_base);
+      strokeWeight(1);
+
+      stroke(70);
+      fill(70);
+      for (let i = 0; i < buckets; i++) {
+        let x = i/buckets * pScale - pScale / 2;
+        let y = p_dist[i] / max_count * hist_height;
+        rect(x, hist_base, 1/buckets * pScale, y);
+      }
     }
     if (show > P_PROP) {
       strokeWeight(1);
       stroke(prop > alpha ? blue : red);
-      line(-pScale / 2 + pScale * prop, 160, -pScale / 2 + pScale * prop, 190);
+      line(-pScale / 2 + pScale * prop, p_scale_base-20, -pScale / 2 + pScale * prop, p_scale_base+20);
     }
 
     scale(1.0, -1.0);
@@ -195,18 +240,18 @@
 
     if (show > P_SCALE) {
       textAlign(RIGHT, CENTER);
-      text('p-value', -pScale / 2 - 25, -175);
+      text('p-value', -pScale / 2 - 25, -p_scale_base);
       textAlign(CENTER, TOP);
-      text('0.0', -pScale/2, -140);
-      text('1.0',  pScale/2, -140);
+      text('0.0', -pScale/2, -(p_scale_base-30));
+      text('1.0',  pScale/2, -(p_scale_base-30));
     }
     if (show > P_ALPHA) {
       textAlign(CENTER, TOP);
-      text('α', -pScale / 2 + pScale * alpha, -150);
+      text('α', -pScale / 2 + pScale * alpha, -(p_scale_base-20));
     }
     if (show > P_PROP) {
       textAlign(CENTER, BOTTOM);
-      text('% significant difference from H0', -pScale / 2 + pScale * prop, -210);
+      text('% significant difference from H0', -pScale / 2 + pScale * prop, -(p_scale_base+35));
     }
   }
 </script>
