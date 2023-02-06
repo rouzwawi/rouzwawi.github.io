@@ -46,12 +46,10 @@
   background-color: transparent;
   border: none;
   display: block;
-
   text-align: center;
-  padding: 8px 8px 4px;
 
   position: relative;
-  width: 20vw;
+  width: 270px;
   height: 7rem;
 
   transition:
@@ -62,6 +60,10 @@
     transform .4s;
 
   transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.icon i {
+  font-size: calc(4rem + 2vmin);
 }
 
 .icon:hover {
@@ -94,10 +96,6 @@
     text-shadow 1.5s;
 }
 
-.icon i {
-  font-size: 5rem;
-}
-
 .glow {
   text-shadow: 0 0 10px #ffffc555;
 }
@@ -117,6 +115,7 @@
 .dots {
   margin-top: 38px;
   cursor: default;
+  overflow-wrap: anywhere;
 }
 
 .dots span {
