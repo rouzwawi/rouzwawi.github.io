@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SaltMaskin</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 25px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>SaltMaskin</h1>
+<div id="sketch-holder">
+</div>
+<p id="keys">
+    commands<br/>
+</p>
+
+<script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.js"></script>
+
+<script>
+  const BUCKET_COUNT = 500;
+  let W = 1200, H = 1100;
+  let dirty = true;
+
+  let gen = 0;
+  let n = 1;
+  let allocations = [];
+
+  let salts = [];
+  let bucketUse = [];
+  let freeHistory = [];
+
+  let durationDist = jStat.normal(50, 25);
+  let populationDist = jStat.beta(.5, 20);
+
+  function Salt() {
+    for (let i = 0; i < BUCKET_COUNT; i++) {
+      bucketUse[i] = 0;
+    }
+    let salt = Math.floor(Math.random()*1000000);
+    let buckets = [];
+    let bucketHistory = [];
+    let discardedGen = null;
+
+    for (let i = 0; i < BUCKET_COUNT; i++) {
+      buckets.push(-1);
+    }
+
+    function allocation() {
+      return buckets.filter(a => a > 0).length / BUCKET_COUNT;
+    }
+
+    function freeBuckets() {
+      return buckets.filter(a => a < 0).length / BUCKET_COUNT;
+    }
+
+    function allocate(portion, id) {
+      let free = buckets.filter(a => a < 0).length;
+      if (free === 0) {
+        return 0.0;
+      }
+
+      let population = Math.ceil(portion * buckets.length);
+      population = Math.min(population, free);
+
+      let bucketsToAllocate = population;
+      let i = Math.floor(Math.random() * buckets.length);
+      i = 0;
+      while (bucketsToAllocate > 0) {
+        let b = buckets[i];
+        if (b < 0) {
+          buckets[i] = id;
+          bucketUse[i]++;
+          bucketsToAllocate--;
+        }
+        i = (i+1) % buckets.length;
+      }
+
+      return population/buckets.length;
+    }
+
+    function release(ids) {
+      releasedIds = {};
+      ids.forEach(id => releasedIds[id] = true);
+      buckets.map((b,i) => (releasedIds[b] || false) ? i : -1)
+          .filter(i => i > -1)
+          .forEach(i => buckets[i] = 0);
+
+      if (jStat.sum(buckets) === 0) {
+        discardedGen = gen;
+      }
+    }
+
+    function snapshot() {
+      bucketHistory.push(buckets.slice());
+    }
+
+    return {
+      allocate, release,
+      snapshot, allocation, freeBuckets,
+      bucketHistory: () => bucketHistory,
+      discarded: (offset=0) => discardedGen && gen > discardedGen + offset,
+      salt
+    };
+  }
+
+  function storeFree(freeRatio) {
+    freeHistory.push(freeRatio * BUCKET_COUNT);
+    if (freeHistory.length > 90) {
+      freeHistory = freeHistory.splice(1);
+    }
+  }
+
+  function allocate() {
+    let id = n++;
+
+    let salt;
+    let population;
+    do {
+      // check allocation of previous salts
+      let prevFree = 1;
+      for (let i = salts.length - 1; i > 0; i--) {
+        prevFree *= 1 - salts[i].allocation();
+      }
+
+      storeFree(prevFree);
+      if (prevFree < 1e-6) {
+        return false; // we're out of salt!
+      }
+
+      salt = salts[0];
+      population = populationDist.sample() / prevFree;
+      population = salt.allocate(population, id);
+
+      if (population < 1e-6) {
+        salts.splice(0, 0, new Salt());
+      }
+    } while (population < 1e-6);
+
+    let duration = Math.max(10, Math.floor(durationDist.sample()));
+    if (Math.random() < 0.05) {
+      duration += 300;
+    }
+    let allocation = {
+      id,
+      salt,
+      startGen: gen,
+      endGen: gen + duration,
+      population: population,
+      color: colorForId(id)
+    };
+    allocations.push(allocation);
+
+    return true;
+  }
+
+  function removeEnded() {
+    let released = allocations.filter(a => gen >= a.endGen);
+    allocations = allocations.filter(a => gen < a.endGen);
+    return released;
+  }
+
+  function tick() {
+    let didAllocate = false;
+    let ended = removeEnded();
+    let endBySalt = {};
+    ended.forEach(e => {
+      let ls = endBySalt[e.salt.salt] = endBySalt[e.salt.salt] || [];
+      ls.push(e);
+    });
+    Object.entries(endBySalt).forEach(([_,ls]) => {
+      ls[0].salt.release(ls.map(e => e.id));
+      ls[0].salt.snapshot();
+    });
+
+    if (Math.random() < 0.2) {
+      didAllocate = allocate();
+    }
+
+    if (didAllocate) {
+      salts[0].snapshot();
+    }
+
+    salts = salts.filter(s => !s.discarded(100));
+
+    if (didAllocate || ended.length > 0) {
+      dirty = true;
+    }
+
+    gen++;
+  }
+
+  function setup() {
+    salts.push(new Salt());
+    for (let i = 0; i < BUCKET_COUNT; i++) {
+      bucketUse.push(0);
+    }
+
+    W = windowWidth - 50;
+
+    let canvas = createCanvas(W, H);
+    canvas.parent('sketch-holder');
+
+    colorMode(HSB);
+
+    setInterval(tick, 50);
+  }
+
+  function keyPressed() {
+    switch (keyCode) {
+      case UP_ARROW:
+        break;
+      case DOWN_ARROW:
+        break;
+      case RIGHT_ARROW:
+        break;
+      case LEFT_ARROW:
+        break;
+    }
+  }
+
+  let lineDrawSlots = [];
+  function findFreeSlot(untilGen) {
+    for (let i = 0; i < lineDrawSlots.length; i++) {
+      if (lineDrawSlots[i] <= gen) {
+        lineDrawSlots[i] = untilGen;
+        return i;
+      }
+    }
+    // not found
+    lineDrawSlots.push(untilGen);
+    return lineDrawSlots.length - 1;
+  }
+
+  function colorForId(id) {
+    if (id === 0) {
+      return color(0, 0, 93);
+    }
+    return color(id*20 % 360, 80, 90);
+  }
+
+  function mouseMoved() {
+    durationDist = jStat.normal(mouseX/2, mouseY/20);
+  }
+
+  function draw() {
+    // tick();
+
+    mouseY = mouseY || windowHeight/2;
+    mouseX = mouseX || windowWidth/2 - 25;
+    let red   = color(250,50,50);
+    let green = color(20,200,20);
+    let blue  = color(50,50,250);
+
+    strokeWeight(0);
+    fill(0, 0, 99);
+    rect(0, 0, W-BUCKET_COUNT, H);
+    // background(0, 0, 99);
+
+    // timeline
+    translate(W/5, 50);
+    strokeWeight(0);
+    stroke(0);
+    allocations.forEach(a => {
+      a.drawSlot = a.drawSlot || findFreeSlot(a.endGen);
+      y = a.drawSlot * 8;
+
+      let x0 = a.startGen - gen;
+      let x1 = Math.min(a.endGen - a.startGen, W-BUCKET_COUNT-W/5-x0);
+      fill(a.color);
+      rect(x0, y, x1, 4);
+    });
+
+    // allocation chart
+    resetMatrix();
+    translate(W/5, 0);
+    strokeWeight(.5);
+    stroke(0);
+    noFill();
+    let chartH = BUCKET_COUNT/10;
+    beginShape();
+    for (let i = 0; i < freeHistory.length; i++) {
+      vertex(3*(i-freeHistory.length+1), H-chartH+freeHistory[i]/10);
+    }
+    endShape();
+    beginShape();
+    for (let i = 0; i < BUCKET_COUNT; i++) {
+      let x = map(i, 0, BUCKET_COUNT, -W/5, 0);
+      vertex(x, H-chartH-chartH/4-bucketUse[i]*chartH/2);
+    }
+    endShape();
+
+    // axis
+    line(0, 50, 0, H);
+    line(-W/5, H, 0, H);
+    line(-W/5, H-chartH, 0, H-chartH);
+    line(-W/5, H-2*chartH, 0, H-2*chartH);
+    fill(0,0,0);
+    textSize(14);
+    strokeWeight(.5);
+    textAlign(CENTER, CENTER);
+    text('allocations timeline', 0, 25);
+    textAlign(LEFT, CENTER);
+    text('buckets used in latest salt', 10, H-3*chartH/2);
+    text('alloc compensation factor', 10, H-chartH/2);
+
+
+    // skip drawing buckets if not dirty
+    if (!dirty) {
+      return;
+    }
+    dirty = false;
+
+    // buckets
+    const barH = 6;
+    resetMatrix();
+    translate(W-BUCKET_COUNT, 0);
+    strokeWeight(0);
+    fill(0, 0, 99);
+    rect(0, 0, BUCKET_COUNT, H);
+    translate(0, 50);
+
+    salts.forEach(salt => {
+      strokeWeight(0);
+      if (salt.discarded()) {
+        fill(0, 100, 90);
+      } else {
+        fill(0);
+      }
+      rect(0, 0, BUCKET_COUNT, barH/2);
+      translate(0, barH/2);
+      salt.bucketHistory().slice().reverse().forEach(buckets => {
+        let lastId = -1;
+        let startI = 0;
+        buckets.forEach((id,i) => {
+          if (id !== lastId || i === BUCKET_COUNT - 1) {
+            if (lastId > -1) {
+              fill(colorForId(lastId));
+              rect(startI, 0, i-startI, barH);
+            }
+            lastId = id;
+            startI = i;
+          }
+        });
+        translate(0, barH);
+      });
+    });
+
+    resetMatrix();
+    translate(W-BUCKET_COUNT/2, 0);
+    fill(0,0,0);
+    textSize(14);
+    strokeWeight(.5);
+    textAlign(CENTER, CENTER);
+    text('salt bucket allocations (black row = new salt)', 0, 25);
+  }
+</script>
+</body>
+</html>
